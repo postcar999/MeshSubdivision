@@ -1,0 +1,19 @@
+.containerTargetPixel
+{
+  flex-direction: row;
+  justify-content: space-around;
+}
+
+.sliderTargetPixel
+{
+  order: 0;
+  flex-grow: 1;
+  padding-right: 3px;
+}
+
+.textTargetPixel
+{
+  order: 1;
+  flex-basis: 50;
+  left: 2px;
+}

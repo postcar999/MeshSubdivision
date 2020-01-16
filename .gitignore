@@ -1,0 +1,7 @@
+
+# User-specific files
+*.csproj
+*.sln
+Logs/
+Library/
+Temp/

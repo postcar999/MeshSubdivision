@@ -1,0 +1,16 @@
+{
+    "name": "MeshSubdivision.Editor",
+    "references": [
+        "GUID:68a6fd59ad97a1e489e64f08a426ca88"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": []
+}

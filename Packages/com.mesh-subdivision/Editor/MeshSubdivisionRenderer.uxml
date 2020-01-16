@@ -1,0 +1,37 @@
+<UXML xmlns:uen="UnityEngine.UIElements" xmlns:ued="UnityEditor.UIElements">
+  <ued:EnumField
+    label="Mesh Type"
+    name="enumMeshType" />
+
+  <uen:TextField
+    label="Mesh Scale"
+    name="textMeshScale"
+    value="" />
+  
+  <ued:EnumField
+    label="Subdivision Interpolation"
+    name="enumSubdInterp" />
+
+  <uen:Toggle
+    label="Toggle Culling"
+    name="toggleCulling" />
+
+  <uen:VisualElement class="containerTargetPixel" name="containerTargetPixel">
+    <uen:SliderInt
+      class="sliderTargetPixel"
+      label="Target Pixel Size"
+      name="sliderTargetPixel"
+      low-value="5"
+      high-value="2000"
+      page-size="1" />
+    <uen:TextField
+      class="textTargetPixel"
+      label=""
+      name="textTargetPixel"
+      value="" />
+  </uen:VisualElement>
+    
+  <ued:ObjectField
+    label="Debug Camera"
+    name="objectDebugCamera" />
+</UXML>
