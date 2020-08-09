@@ -1,8 +1,10 @@
 {
-    "name": "com.mesh-subdivision",
-    "description": "",
-    "version": "0.9.0",
-    "unity": "2019.2",
-    "displayName": "Mesh Subdivision",
-    "description": "Mesh Subdivision using ComputeShader"
+  "name": "com.mesh-subdivision",
+  "description": "Mesh Subdivision using ComputeShader",
+  "version": "0.2.0",
+  "unity": "2019.3",
+  "displayName": "Mesh Subdivision",
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "7.3.1"
+  }
 }

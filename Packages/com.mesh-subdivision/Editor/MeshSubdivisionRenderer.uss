@@ -1,19 +1,17 @@
 .containerTargetPixel
 {
-  flex-direction: row;
-  justify-content: space-around;
+    max-height: 19px;
 }
 
 .sliderTargetPixel
 {
-  order: 0;
-  flex-grow: 1;
-  padding-right: 3px;
+    padding-right: 45px;
 }
 
 .textTargetPixel
 {
-  order: 1;
-  flex-basis: 50;
-  left: 2px;
+    align-self: flex-end;
+    margin-right: 0px;
+    min-width: 40px;
+    top: -19px;
 }

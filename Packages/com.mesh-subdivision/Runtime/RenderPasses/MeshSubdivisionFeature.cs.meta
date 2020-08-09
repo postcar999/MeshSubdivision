@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: fe71719a506b1594b8176d5575e96ff8
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - MeshSubdMat: {fileID: 2100000, guid: b99c651f64b3dd84ca37e5f091810809, type: 2}
+  - MeshSubdCS: {fileID: 7200000, guid: cd74ad876b2161544b70584530efd0ae, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

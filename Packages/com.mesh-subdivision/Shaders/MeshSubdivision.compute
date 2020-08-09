@@ -1,65 +1,49 @@
-#pragma kernel KernelLod                  SubdivisionKernel=KernelLod                  KERNEL_LOD
-#pragma kernel KernelLodCulling           SubdivisionKernel=KernelLodCulling           KERNEL_LOD _CULLING
-#pragma kernel KernelLodPnTriangle        SubdivisionKernel=KernelLodPnTriangle        KERNEL_LOD _PN_TRIANGLE
-#pragma kernel KernelLodPnTriangleCulling SubdivisionKernel=KernelLodPnTriangleCulling KERNEL_LOD _PN_TRIANGLE _CULLING
-#pragma kernel KernelLodPhongTess         SubdivisionKernel=KernelLodPhongTess         KERNEL_LOD _PHONG_TESSELLATION
-#pragma kernel KernelLodPhongTessCulling  SubdivisionKernel=KernelLodPhongTessCulling  KERNEL_LOD _PHONG_TESSELLATION _CULLING
-#pragma kernel KernelIndirectBatcher      SubdivisionKernel=KernelIndirectBatcher      KERNEL_INDIRECT_BATCHER
+#pragma kernel KernelLod                    SubdivisionKernel=KernelLod                    KERNEL_LOD
+#pragma kernel KernelLodCulling             SubdivisionKernel=KernelLodCulling             KERNEL_LOD _CULLING
+#pragma kernel KernelLodPnTriangle          SubdivisionKernel=KernelLodPnTriangle          KERNEL_LOD _PN_TRIANGLE
+#pragma kernel KernelLodPnTriangleCulling   SubdivisionKernel=KernelLodPnTriangleCulling   KERNEL_LOD _PN_TRIANGLE _CULLING
+#pragma kernel KernelLodPhongTess           SubdivisionKernel=KernelLodPhongTess           KERNEL_LOD _PHONG_TESSELLATION
+#pragma kernel KernelLodPhongTessCulling    SubdivisionKernel=KernelLodPhongTessCulling    KERNEL_LOD _PHONG_TESSELLATION _CULLING
+#pragma kernel KernelIndirectBatcher        SubdivisionKernel=KernelIndirectBatcher        KERNEL_INDIRECT_BATCHER
+#pragma kernel KernelIndirectBatcherCulling SubdivisionKernel=KernelIndirectBatcherCulling KERNEL_INDIRECT_BATCHER _CULLING
 
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-#include "Packages/com.mesh-subdivision/ShaderLibrary/MeshSubdivisionCommon.hlsl"
+#define FULLY_UNPACK
 
 #define PRIMS_PER_THREAD 64u
 
-#ifdef KERNEL_LOD
+#if defined(KERNEL_LOD)
 #define NUM_THREADS PRIMS_PER_THREAD
-#elif KERNEL_INDIRECT_BATCHER
+#elif defined(KERNEL_INDIRECT_BATCHER)
 #define NUM_THREADS 1
 #endif
+
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+#include "Packages/com.mesh-subdivision/ShaderLibrary/MeshSubdivisionCommon.hlsl"
 
 CBUFFER_START(_ArgsBuffer)
     uint4 _ArgsOffsets;
 CBUFFER_END
 
-CBUFFER_START(_Lod)
-    uint4 _VertexOrder;
-    float4 _LodParameters;
-    float4 _Transform;
-    float4 _CameraDirection;
-    float4 _CameraPosition;
-    float4 _FrustumPlanes[6];
-CBUFFER_END
+#define _Offset0 _ArgsOffsets.x
+#define _Offset1 _ArgsOffsets.y
+#define _Offset2 _ArgsOffsets.z
+#define _Offset3 _ArgsOffsets.w
 
-#define _Offset0          _ArgsOffsets.x
-#define _Offset1          _ArgsOffsets.y
-#define _Offset2          _ArgsOffsets.z
+RWStructuredBuffer<IndirectArg>       _RWIndirectArgsBuffer;
+RWStructuredBuffer<SubdivisionPacked> _RWSubdivision0Buffer;
+RWStructuredBuffer<SubdivisionPacked> _RWSubdivision1Buffer;
+RWStructuredBuffer<uint>              _RWCulledIndexBuffer;
 
-#define _Fov              _LodParameters.x
-#define _TargetPixelRate  _LodParameters.y // _TargetPixelSize / _ScreenResolution
-#define _LodScale         _LodParameters.z // object scale / primitive area
-
-#define _Translation      _Transform.xyz
-#define _Scale            _Transform.w
-
-StructuredBuffer<Vertex> _VertexBuffer;
-StructuredBuffer<uint>   _IndexBuffer;
-
-RWStructuredBuffer<IndirectArg> _RWIndirectArgsBuffer;
-RWStructuredBuffer<Subdivision> _RWSubdivision0Buffer;
-RWStructuredBuffer<Subdivision> _RWSubdivision1Buffer;
-RWStructuredBuffer<uint>        _RWCulledIndexBuffer;
-
-#if KERNEL_LOD
-#include "MeshSubdivisionLod.hlsl"
-#elif KERNEL_INDIRECT_BATCHER
-#include "MeshSubdivisionIndirectBatcher.hlsl"
+#if defined(KERNEL_LOD)
+#include "Lod.hlsl"
+#elif defined(KERNEL_INDIRECT_BATCHER)
+#include "IndirectBatcher.hlsl"
 #endif
-
 
 [numthreads(NUM_THREADS, 1,1)]
 void SubdivisionKernel(uint3 id : SV_DispatchThreadID)
 {
-#if KERNEL_LOD
+#if defined(KERNEL_LOD)
     IndirectArg arguments = _RWIndirectArgsBuffer[_Offset0];
 
     int threadId = id.x;
@@ -68,52 +52,39 @@ void SubdivisionKernel(uint3 id : SV_DispatchThreadID)
     if (threadId >= numSubd)
         return;
 
-    Subdivision subd = _RWSubdivision0Buffer[threadId];
+    SubdivisionPacked packed = _RWSubdivision0Buffer[threadId];
+
+    Subdivision subd;
+    UnpackSubdivision(packed, subd);
+
+    Vertex vertexList[3];
+    FetchVertex(subd.index, vertexList);
 
     float3x3 xf[2]; // [0]:target, [1]:parent
     KeyToXform(subd.key, xf[0], xf[1]);
 
-    int primStart = subd.primId * 3;
-
-    Vertex vertexList[3] =
-    {
-        _VertexBuffer[_IndexBuffer[primStart + _VertexOrder.x]],
-        _VertexBuffer[_IndexBuffer[primStart + _VertexOrder.y]],
-        _VertexBuffer[_IndexBuffer[primStart + _VertexOrder.z]],
-    };
-
-    vertexList[0].position.xyz *= _Scale;
-    vertexList[1].position.xyz *= _Scale;
-    vertexList[2].position.xyz *= _Scale;
-
-    vertexList[0].position.xyz += _Translation;
-    vertexList[1].position.xyz += _Translation;
-    vertexList[2].position.xyz += _Translation;
-
     float3 subdHypotenuse[2]; // [0]:target hypotenuse, [1]:parent hypotenuse
-    SubdivideTriangle(subd.key, 0.5, xf[0], vertexList, subdHypotenuse[0]);
-    SubdivideTriangle(subd.key, 0.5, xf[1], vertexList, subdHypotenuse[1]);
+    SubdivideTriangle(0.5, xf[0], vertexList, subdHypotenuse[0]);
+    SubdivideTriangle(0.5, xf[1], vertexList, subdHypotenuse[1]);
 
-#if _CULLING
+    #ifdef _CULLING
     float3 subdPosition[3];
-    SubdivideTriangle(subd.key, xf[0], vertexList, subdPosition);
+    SubdivideTriangle(subd.msb, xf[0], vertexList, subdPosition);
 
-    bool isFrontFace = IsFrontFace(subdPosition);
-    bool isInsideFrustum = IsInsideFrustum(subdHypotenuse[0], subdPosition[1]);
-#else
-    bool isFrontFace = true;
-    bool isInsideFrustum = true;
-#endif
+    bool culledBackFace = CullSubdivisionBackFace(subdPosition, 0.0);
+    bool culledFruatum = CullSubdivisionFrustum(subdPosition, 0.0);
 
-    float targetz = ComputeDistanceSq(subdHypotenuse[0], _CameraPosition.xyz);
-    float parentz = ComputeDistanceSq(subdHypotenuse[1], _CameraPosition.xyz);
+    UpdateCulledIndexBuffer(threadId, culledBackFace, culledFruatum);
+    #endif
 
-    int targetLod = (int)ComputeLod(targetz, _LodScale);
-    int parentLod = (int)ComputeLod(parentz, _LodScale);
+    float targetDist = distance(subdHypotenuse[0], _WorldSpaceCameraPos);
+    float parentDist = distance(subdHypotenuse[1], _WorldSpaceCameraPos);
 
-    UpdateSubdivisionBuffer(subd.key, subd.primId, targetLod, parentLod);
-    UpdateCulledIndexBuffer(threadId, isFrontFace, isInsideFrustum);
-#elif KERNEL_INDIRECT_BATCHER
+    int targetLod = (int)ComputeLod(targetDist);
+    int parentLod = (int)ComputeLod(parentDist);
+
+    UpdateSubdivisionBuffer(subd, targetLod, parentLod);
+#elif defined(KERNEL_INDIRECT_BATCHER)
 
     //
     // for KernelLod
@@ -136,15 +107,29 @@ void SubdivisionKernel(uint3 id : SV_DispatchThreadID)
     // for DrawProcedural
 
     int indexCount = 3;
-    int numCulled = _RWCulledIndexBuffer.IncrementCounter();
     int startIndex = 0;
     int startInstance = 0;
 
+    int numPrims = _RWSubdivision0Buffer.IncrementCounter();
+
+    // raw primitives
+    arguments.arg0 = indexCount;
+    arguments.arg1 = numPrims;
+    arguments.arg2 = startIndex;
+    arguments.arg3 = startInstance;
+
+    _RWIndirectArgsBuffer[_Offset2] = arguments;
+
+    #ifdef _CULLING
+    int numCulled = _RWCulledIndexBuffer.IncrementCounter();
+
+    // culled primitives
     arguments.arg0 = indexCount;
     arguments.arg1 = numCulled;
     arguments.arg2 = startIndex;
     arguments.arg3 = startInstance;
 
-    _RWIndirectArgsBuffer[_Offset2] = arguments;
+    _RWIndirectArgsBuffer[_Offset3] = arguments;
+    #endif
 #endif
 }

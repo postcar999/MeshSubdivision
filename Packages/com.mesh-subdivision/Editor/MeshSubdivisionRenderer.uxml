@@ -3,14 +3,17 @@
     label="Mesh Type"
     name="enumMeshType" />
 
-  <uen:TextField
-    label="Mesh Scale"
-    name="textMeshScale"
-    value="" />
+  <ued:EnumField
+    label="Mesh Shading"
+    name="enumMeshShading" />
   
   <ued:EnumField
     label="Subdivision Interpolation"
     name="enumSubdInterp" />
+
+  <uen:Toggle
+    label="Cast Shadows"
+    name="toggleCastShadows" />
 
   <uen:Toggle
     label="Toggle Culling"
@@ -22,7 +25,7 @@
       label="Target Pixel Size"
       name="sliderTargetPixel"
       low-value="5"
-      high-value="2000"
+      high-value="500"
       page-size="1" />
     <uen:TextField
       class="textTargetPixel"
@@ -30,7 +33,7 @@
       name="textTargetPixel"
       value="" />
   </uen:VisualElement>
-    
+
   <ued:ObjectField
     label="Debug Camera"
     name="objectDebugCamera" />
